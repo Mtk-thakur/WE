@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html ng-app="TaskFlowApp">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow — Smart Task Manager</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.3/angular.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --card: #1a1a24;
+      --border: #2a2a38;
+      --accent: #7c5cfc;
+      --accent2: #fc5c7d;
+      --accent3: #5cf0d0;
+      --text: #e8e8f0;
+      --muted: #7070a0;
+      --success: #4ade80;
+      --warn: #fbbf24;
+      --danger: #f87171;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    /* SIDEBAR */
+    .sidebar {
+      position: fixed; left: 0; top: 0;
+      width: 240px; height: 100vh;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      padding: 28px 0;
+      z-index: 100;
+    }
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-size: 22px; font-weight: 800;
+      padding: 0 24px 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+    .logo span { -webkit-text-fill-color: var(--text); font-weight: 400; }
+    .nav-section { padding: 0 12px; margin-bottom: 8px; }
+    .nav-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 1.5px;
+      color: var(--muted); text-transform: uppercase;
+      padding: 0 12px 8px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 8px;
+      cursor: pointer; font-size: 14px; font-weight: 500;
+      color: var(--muted); transition: all 0.2s;
+      border: none; background: none; width: 100%; text-align: left;
+    }
+    .nav-item:hover { background: var(--card); color: var(--text); }
+    .nav-item.active { background: rgba(124,92,252,0.15); color: var(--accent); }
+    .nav-icon { font-size: 18px; width: 22px; text-align: center; }
+    .sidebar-footer {
+      margin-top: auto; padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      font-size: 12px; color: var(--muted);
+    }
+    /* MAIN */
+    .main {
+      margin-left: 240px;
+      min-height: 100vh;
+      padding: 32px 40px;
+    }
+    /* TOPBAR */
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 36px;
+    }
+    .page-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 28px; font-weight: 700;
+    }
+    .user-badge {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 40px; padding: 6px 16px 6px 8px;
+      font-size: 13px;
+    }
+    .avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: #fff;
+    }
+    /* STATS */
+    .stats-row {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 16px; margin-bottom: 32px;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 22px;
+      position: relative; overflow: hidden;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      border-radius: 14px 14px 0 0;
+    }
+    .stat-card.purple::before { background: var(--accent); }
+    .stat-card.pink::before { background: var(--accent2); }
+    .stat-card.teal::before { background: var(--accent3); }
+    .stat-card.gold::before { background: var(--warn); }
+    .stat-label { font-size: 12px; color: var(--muted); margin-bottom: 8px; font-weight: 500; letter-spacing: 0.5px; }
+    .stat-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 32px; font-weight: 800; line-height: 1;
+    }
+    .stat-card.purple .stat-num { color: var(--accent); }
+    .stat-card.pink .stat-num { color: var(--accent2); }
+    .stat-card.teal .stat-num { color: var(--accent3); }
+    .stat-card.gold .stat-num { color: var(--warn); }
+    /* FORM */
+    .form-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px; margin-bottom: 28px;
+    }
+    .form-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 16px; font-weight: 700; margin-bottom: 18px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr auto auto; gap: 12px; align-items: end; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 0.8px; text-transform: uppercase; }
+    .field input, .field select, .field textarea {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .field input:focus, .field select:focus { border-color: var(--accent); }
+    .field select option { background: var(--surface); }
+    .btn {
+      padding: 10px 20px; border-radius: 8px; border: none;
+      font-family: 'DM Sans', sans-serif; font-size: 14px;
+      font-weight: 600; cursor: pointer; transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: var(--accent); color: #fff;
+    }
+    .btn-primary:hover { background: #6a4ae8; transform: translateY(-1px); }
+    .btn-outline {
+      background: transparent; color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-danger { background: var(--danger); color: #fff; padding: 7px 14px; font-size: 12px; }
+    .btn-success { background: var(--success); color: #000; padding: 7px 14px; font-size: 12px; }
+    /* FILTERS */
+    .filter-row {
+      display: flex; gap: 10px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;
+    }
+    .filter-btn {
+      padding: 7px 16px; border-radius: 20px; border: 1px solid var(--border);
+      background: transparent; color: var(--muted); font-size: 13px;
+      cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif;
+    }
+    .filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .filter-btn:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
+    .search-box {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 7px 14px; color: var(--text);
+      font-size: 13px; font-family: 'DM Sans', sans-serif; outline: none;
+      min-width: 200px; margin-left: auto;
+    }
+    .search-box:focus { border-color: var(--accent); }
+    /* TASK TABLE */
+    .task-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+    }
+    .task-table { width: 100%; border-collapse: collapse; }
+    .task-table thead tr {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .task-table th {
+      padding: 12px 16px; text-align: left;
+      font-size: 11px; font-weight: 600; color: var(--muted);
+      letter-spacing: 0.8px; text-transform: uppercase;
+    }
+    .task-table td {
+      padding: 14px 16px; font-size: 14px;
+      border-bottom: 1px solid rgba(42,42,56,0.5);
+      vertical-align: middle;
+    }
+    .task-table tr:last-child td { border-bottom: none; }
+    .task-table tbody tr { transition: background 0.15s; }
+    .task-table tbody tr:hover { background: rgba(124,92,252,0.04); }
+    .task-table tr.done td { opacity: 0.55; }
+    .task-table tr.done .task-title { text-decoration: line-through; }
+    .task-title { font-weight: 500; }
+    /* BADGE */
+    .badge {
+      display: inline-block; padding: 3px 10px;
+      border-radius: 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+    }
+    .badge-high { background: rgba(248,113,113,0.15); color: var(--danger); }
+    .badge-medium { background: rgba(251,191,36,0.15); color: var(--warn); }
+    .badge-low { background: rgba(92,240,208,0.15); color: var(--accent3); }
+    .badge-todo { background: rgba(112,112,160,0.15); color: var(--muted); }
+    .badge-inprogress { background: rgba(124,92,252,0.15); color: var(--accent); }
+    .badge-done { background: rgba(74,222,128,0.15); color: var(--success); }
+    /* EDIT FORM INLINE */
+    .edit-row td { background: rgba(124,92,252,0.06); }
+    .edit-row input, .edit-row select {
+      background: var(--surface); border: 1px solid var(--accent);
+      border-radius: 6px; padding: 5px 10px; color: var(--text);
+      font-size: 13px; width: 100%;
+    }
+    .actions { display: flex; gap: 6px; }
+    /* EMPTY */
+    .empty-state {
+      text-align: center; padding: 60px 20px;
+      color: var(--muted);
+    }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state p { font-size: 15px; }
+    /* TOAST */
+    .toast-container {
+      position: fixed; bottom: 24px; right: 24px;
+      z-index: 9999;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 20px;
+      font-size: 14px; min-width: 260px;
+      display: flex; align-items: center; gap: 10px;
+      animation: slideIn 0.3s ease;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .toast.success { border-left: 3px solid var(--success); }
+    .toast.error { border-left: 3px solid var(--danger); }
+    @keyframes slideIn {
+      from { transform: translateX(100px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    /* MODAL */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+      z-index: 200;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .modal {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 32px; min-width: 480px;
+      animation: fadeIn 0.25s ease;
+    }
+    @keyframes fadeIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .modal-title {
+      font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700;
+      margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .modal-close { cursor: pointer; color: var(--muted); font-size: 20px; }
+    .modal .field { margin-bottom: 14px; }
+    .modal .field input, .modal .field select, .modal .field textarea {
+      width: 100%;
+    }
+    .modal-btns { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    /* PROGRESS BAR */
+    .progress-bar-wrap {
+      background: var(--border); border-radius: 4px; height: 6px; margin: 4px 0; overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%; border-radius: 4px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width 0.5s ease;
+    }
+    /* RESPONSIVE */
+    @media (max-width: 900px) {
+      .sidebar { width: 60px; }
+      .logo, .nav-label, .nav-item span { display: none; }
+      .main { margin-left: 60px; padding: 20px; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .form-row { grid-template-columns: 1fr 1fr; }
+    }
+    .priority-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      display: inline-block; margin-right: 6px;
+    }
+    .dot-high { background: var(--danger); }
+    .dot-medium { background: var(--warn); }
+    .dot-low { background: var(--accent3); }
+    .due-overdue { color: var(--danger); font-weight: 600; }
+    .due-soon { color: var(--warn); }
+    .category-tag {
+      font-size: 11px; background: rgba(124,92,252,0.12);
+      color: var(--accent); border-radius: 4px; padding: 2px 7px;
+    }
+  </style>
+</head>
+<body ng-controller="TaskController as vm">
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="logo">Task<span>Flow</span></div>
+  <div class="nav-section">
+    <div class="nav-label">Menu</div>
+    <button class="nav-item" ng-class="{active: vm.view==='dashboard'}" ng-click="vm.view='dashboard'">
+      <span class="nav-icon">⊞</span><span>Dashboard</span>
+    </button>
+    <button class="nav-item" ng-class="{active: vm.view==='tasks'}" ng-click="vm.view='tasks'">
+      <span class="nav-icon">✓</span><span>All Tasks</span>
+    </button>
+    <button class="nav-item" ng-class="{active: vm.view==='users'}" ng-click="vm.view='users'">
+      <span class="nav-icon">👤</span><span>Users</span>
+    </button>
+    <button class="nav-item" ng-class="{active: vm.view==='api'}" ng-click="vm.view='api'">
+      <span class="nav-icon">⚡</span><span>API Docs</span>
+    </button>
+  </div>
+  <div class="sidebar-footer">
+    <div>TaskFlow v1.0</div>
+    <div>Web Eng. Project</div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div>
+      <div class="page-title" ng-if="vm.view==='dashboard'">📊 Dashboard</div>
+      <div class="page-title" ng-if="vm.view==='tasks'">✅ Task Manager</div>
+      <div class="page-title" ng-if="vm.view==='users'">👥 User Management</div>
+      <div class="page-title" ng-if="vm.view==='api'">⚡ REST API Docs</div>
+    </div>
+    <div class="user-badge">
+      <div class="avatar">A</div>
+      Admin User
+    </div>
+  </div>
+
+  <!-- ============ DASHBOARD ============ -->
+  <div ng-if="vm.view==='dashboard'">
+    <div class="stats-row">
+      <div class="stat-card purple">
+        <div class="stat-label">TOTAL TASKS</div>
+        <div class="stat-num">{{vm.tasks.length}}</div>
+      </div>
+      <div class="stat-card teal">
+        <div class="stat-label">COMPLETED</div>
+        <div class="stat-num">{{vm.countByStatus('Done')}}</div>
+      </div>
+      <div class="stat-card gold">
+        <div class="stat-label">IN PROGRESS</div>
+        <div class="stat-num">{{vm.countByStatus('In Progress')}}</div>
+      </div>
+      <div class="stat-card pink">
+        <div class="stat-label">OVERDUE</div>
+        <div class="stat-num">{{vm.countOverdue()}}</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px">
+      <div class="form-section">
+        <div class="form-title">📈 Completion Progress</div>
+        <div style="margin-bottom:10px;font-size:13px;color:var(--muted)">{{vm.completionPct()}}% tasks completed</div>
+        <div class="progress-bar-wrap" style="height:10px">
+          <div class="progress-bar" style="width:{{vm.completionPct()}}%"></div>
+        </div>
+        <div style="margin-top:20px">
+          <div ng-repeat="p in ['High','Medium','Low']" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-size:13px"><span class="priority-dot dot-{{p.toLowerCase()}}"></span>{{p}} Priority</span>
+            <span style="font-family:Syne,sans-serif;font-weight:700;font-size:16px">{{vm.countByPriority(p)}}</span>
+          </div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-title">🗂️ Tasks by Category</div>
+        <div ng-repeat="cat in vm.categories" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span class="category-tag">{{cat}}</span>
+          <span style="font-family:Syne,sans-serif;font-weight:700">{{vm.countByCategory(cat)}}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="task-section">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);font-family:Syne,sans-serif;font-weight:700;font-size:15px">🔥 Recent Tasks</div>
+      <table class="task-table">
+        <thead><tr>
+          <th>Task</th><th>Priority</th><th>Status</th><th>Category</th><th>Due</th>
+        </tr></thead>
+        <tbody>
+          <tr ng-repeat="t in vm.tasks | orderBy:'-createdAt' | limitTo:5" ng-class="{done: t.status==='Done'}">
+            <td class="task-title">{{t.title}}</td>
+            <td><span class="badge badge-{{t.priority.toLowerCase()}}"><span class="priority-dot dot-{{t.priority.toLowerCase()}}"></span>{{t.priority}}</span></td>
+            <td><span class="badge badge-{{vm.statusClass(t.status)}}">{{t.status}}</span></td>
+            <td><span class="category-tag">{{t.category}}</span></td>
+            <td ng-class="{'due-overdue': vm.isOverdue(t), 'due-soon': vm.isDueSoon(t)}">{{t.dueDate || '—'}}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="empty-state" ng-if="vm.tasks.length===0">
+        <div class="empty-icon">📭</div>
+        <p>No tasks yet. Create your first task!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TASKS ============ -->
+  <div ng-if="vm.view==='tasks'">
+    <!-- ADD TASK FORM -->
+    <div class="form-section">
+      <div class="form-title">➕ Add New Task</div>
+      <div class="form-row">
+        <div class="field" style="grid-column:span 2">
+          <label>Task Title *</label>
+          <input type="text" ng-model="vm.newTask.title" placeholder="Enter task title..." />
+        </div>
+        <div class="field">
+          <label>Category</label>
+          <select ng-model="vm.newTask.category">
+            <option ng-repeat="c in vm.categories" value="{{c}}">{{c}}</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Priority</label>
+          <select ng-model="vm.newTask.priority">
+            <option>High</option><option>Medium</option><option>Low</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Due Date</label>
+          <input type="date" ng-model="vm.newTask.dueDate" />
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:12px">
+        <div class="field" style="flex:1">
+          <label>Assigned To</label>
+          <input type="text" ng-model="vm.newTask.assignedTo" placeholder="Name or email..." />
+        </div>
+        <div class="field" style="flex:2">
+          <label>Description</label>
+          <input type="text" ng-model="vm.newTask.description" placeholder="Optional notes..." />
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <button class="btn btn-primary" ng-click="vm.addTask()" style="height:40px">Add Task</button>
+        </div>
+      </div>
+      <div ng-if="vm.formError" style="color:var(--danger);font-size:12px;margin-top:8px">{{vm.formError}}</div>
+    </div>
+
+    <!-- FILTERS -->
+    <div class="filter-row">
+      <button class="filter-btn" ng-class="{active: vm.filterStatus==='all'}" ng-click="vm.filterStatus='all'">All</button>
+      <button class="filter-btn" ng-class="{active: vm.filterStatus==='Todo'}" ng-click="vm.filterStatus='Todo'">Todo</button>
+      <button class="filter-btn" ng-class="{active: vm.filterStatus==='In Progress'}" ng-click="vm.filterStatus='In Progress'">In Progress</button>
+      <button class="filter-btn" ng-class="{active: vm.filterStatus==='Done'}" ng-click="vm.filterStatus='Done'">Done</button>
+      <button class="filter-btn" ng-class="{active: vm.filterPriority==='High'}" ng-click="vm.togglePriorityFilter('High')">🔴 High</button>
+      <button class="filter-btn" ng-class="{active: vm.filterPriority==='Medium'}" ng-click="vm.togglePriorityFilter('Medium')">🟡 Medium</button>
+      <button class="filter-btn" ng-class="{active: vm.filterPriority==='Low'}" ng-click="vm.togglePriorityFilter('Low')">🟢 Low</button>
+      <input class="search-box" ng-model="vm.searchQuery" placeholder="🔍 Search tasks..." />
+    </div>
+
+    <!-- TASK TABLE -->
+    <div class="task-section">
+      <table class="task-table">
+        <thead><tr>
+          <th>#</th><th>Task</th><th>Category</th><th>Priority</th>
+          <th>Status</th><th>Assigned To</th><th>Due Date</th><th>Actions</th>
+        </tr></thead>
+        <tbody>
+          <tr ng-repeat="t in vm.filteredTasks() track by t.id"
+              ng-class="{done: t.status==='Done', 'edit-row': t.editing}">
+
+            <td ng-if="!t.editing" style="color:var(--muted);font-size:12px">{{$index+1}}</td>
+            <td ng-if="!t.editing" class="task-title">{{t.title}}<br>
+              <span style="font-size:11px;color:var(--muted)">{{t.description}}</span>
+            </td>
+            <td ng-if="!t.editing"><span class="category-tag">{{t.category}}</span></td>
+            <td ng-if="!t.editing">
+              <span class="badge badge-{{t.priority.toLowerCase()}}">
+                <span class="priority-dot dot-{{t.priority.toLowerCase()}}"></span>{{t.priority}}
+              </span>
+            </td>
+            <td ng-if="!t.editing"><span class="badge badge-{{vm.statusClass(t.status)}}">{{t.status}}</span></td>
+            <td ng-if="!t.editing" style="font-size:13px">{{t.assignedTo || '—'}}</td>
+            <td ng-if="!t.editing" style="font-size:13px"
+                ng-class="{'due-overdue': vm.isOverdue(t), 'due-soon': vm.isDueSoon(t)}">
+              {{t.dueDate || '—'}}
+            </td>
+            <td ng-if="!t.editing">
+              <div class="actions">
+                <button class="btn btn-success" ng-click="vm.toggleDone(t)" ng-if="t.status!=='Done'">✓</button>
+                <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" ng-click="vm.startEdit(t)">✏️</button>
+                <button class="btn btn-danger" ng-click="vm.deleteTask(t.id)">✕</button>
+              </div>
+            </td>
+
+            <!-- EDIT ROW -->
+            <td ng-if="t.editing" colspan="2">
+              <input ng-model="t.editTitle" style="width:100%" />
+            </td>
+            <td ng-if="t.editing">
+              <select ng-model="t.editCategory">
+                <option ng-repeat="c in vm.categories" value="{{c}}">{{c}}</option>
+              </select>
+            </td>
+            <td ng-if="t.editing">
+              <select ng-model="t.editPriority">
+                <option>High</option><option>Medium</option><option>Low</option>
+              </select>
+            </td>
+            <td ng-if="t.editing">
+              <select ng-model="t.editStatus">
+                <option>Todo</option><option>In Progress</option><option>Done</option>
+              </select>
+            </td>
+            <td ng-if="t.editing">
+              <input ng-model="t.editAssignedTo" />
+            </td>
+            <td ng-if="t.editing">
+              <input type="date" ng-model="t.editDueDate" />
+            </td>
+            <td ng-if="t.editing">
+              <div class="actions">
+                <button class="btn btn-primary" style="padding:6px 12px;font-size:12px" ng-click="vm.saveEdit(t)">Save</button>
+                <button class="btn btn-outline" style="padding:6px 12px;font-size:12px" ng-click="t.editing=false">Cancel</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="empty-state" ng-if="vm.filteredTasks().length===0">
+        <div class="empty-icon">🔍</div>
+        <p>No tasks match your filters.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ USERS ============ -->
+  <div ng-if="vm.view==='users'">
+    <div class="form-section">
+      <div class="form-title">➕ Add User</div>
+      <div class="form-row">
+        <div class="field">
+          <label>Full Name *</label>
+          <input ng-model="vm.newUser.name" placeholder="John Doe" />
+        </div>
+        <div class="field">
+          <label>Email *</label>
+          <input ng-model="vm.newUser.email" placeholder="john@example.com" />
+        </div>
+        <div class="field">
+          <label>Role</label>
+          <select ng-model="vm.newUser.role">
+            <option>Admin</option><option>Manager</option><option>Developer</option><option>Designer</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Department</label>
+          <select ng-model="vm.newUser.department">
+            <option>Engineering</option><option>Design</option><option>Marketing</option><option>Operations</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <button class="btn btn-primary" ng-click="vm.addUser()">Add User</button>
+        </div>
+      </div>
+    </div>
+    <div class="task-section">
+      <table class="task-table">
+        <thead><tr>
+          <th>User</th><th>Email</th><th>Role</th><th>Department</th><th>Tasks Assigned</th><th>Actions</th>
+        </tr></thead>
+        <tbody>
+          <tr ng-repeat="u in vm.users">
+            <td>
+              <div style="display:flex;align-items:center;gap:10px">
+                <div class="avatar" style="font-size:11px">{{u.name.charAt(0)}}</div>
+                {{u.name}}
+              </div>
+            </td>
+            <td style="font-size:13px;color:var(--muted)">{{u.email}}</td>
+            <td><span class="badge badge-inprogress">{{u.role}}</span></td>
+            <td>{{u.department}}</td>
+            <td style="font-family:Syne,sans-serif;font-weight:700">{{vm.tasksForUser(u.name)}}</td>
+            <td><button class="btn btn-danger" ng-click="vm.deleteUser(u.id)">Remove</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============ API DOCS ============ -->
+  <div ng-if="vm.view==='api'">
+    <div class="form-section" style="font-family:monospace">
+      <div class="form-title" style="font-family:Syne,sans-serif">⚡ REST API Endpoints</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:20px">Base URL: <code style="color:var(--accent)">http://localhost:3000/api</code></div>
+      <div ng-repeat="ep in vm.apiEndpoints" style="margin-bottom:16px;padding:14px;background:var(--surface);border-radius:10px;border-left:3px solid {{ep.color}}">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+          <span style="background:{{ep.color}};color:#000;font-weight:800;font-size:11px;padding:3px 8px;border-radius:4px;font-family:Syne,sans-serif;min-width:56px;text-align:center">{{ep.method}}</span>
+          <span style="color:var(--text);font-size:14px">{{ep.path}}</span>
+        </div>
+        <div style="color:var(--muted);font-size:12px;font-family:'DM Sans',sans-serif">{{ep.desc}}</div>
+        <div style="margin-top:6px;font-size:11px;color:var(--accent3)">Response: {{ep.response}}</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- TOAST -->
+<div class="toast-container">
+  <div ng-repeat="t in vm.toasts" class="toast {{t.type}}">
+    <span>{{t.type==='success' ? '✅' : '❌'}}</span>
+    {{t.message}}
+  </div>
+</div>
+
+<script>
+angular.module('TaskFlowApp', [])
+.controller('TaskController', ['$scope', '$timeout', function($scope, $timeout) {
+  var vm = this;
+  vm.view = 'dashboard';
+  vm.filterStatus = 'all';
+  vm.filterPriority = 'all';
+  vm.searchQuery = '';
+  vm.formError = '';
+  vm.toasts = [];
+  vm.categories = ['Development','Design','Marketing','Operations','Research','Testing'];
+
+  // Seed tasks
+  vm.tasks = [
+    {id:1,title:'Build REST API endpoints',description:'Create Express routes for tasks',category:'Development',priority:'High',status:'Done',assignedTo:'Alice',dueDate:'2025-05-10',createdAt:new Date('2025-05-01')},
+    {id:2,title:'Design UI wireframes',description:'Figma mockups for dashboard',category:'Design',priority:'Medium',status:'Done',assignedTo:'Bob',dueDate:'2025-05-12',createdAt:new Date('2025-05-02')},
+    {id:3,title:'Connect MongoDB database',description:'Setup Atlas cluster and mongoose',category:'Development',priority:'High',status:'In Progress',assignedTo:'Alice',dueDate:'2025-05-15',createdAt:new Date('2025-05-03')},
+    {id:4,title:'Write unit tests',description:'Jest tests for all API routes',category:'Testing',priority:'Medium',status:'Todo',assignedTo:'Charlie',dueDate:'2025-05-20',createdAt:new Date('2025-05-04')},
+    {id:5,title:'SEO optimization',description:'Meta tags and sitemap',category:'Marketing',priority:'Low',status:'Todo',assignedTo:'Dave',dueDate:'2025-05-25',createdAt:new Date('2025-05-05')},
+  ];
+  vm.nextId = 6;
+
+  vm.users = [
+    {id:1,name:'Alice Johnson',email:'alice@taskflow.io',role:'Developer',department:'Engineering'},
+    {id:2,name:'Bob Smith',email:'bob@taskflow.io',role:'Designer',department:'Design'},
+    {id:3,name:'Charlie Brown',email:'charlie@taskflow.io',role:'Manager',department:'Operations'},
+  ];
+  vm.nextUserId = 4;
+
+  vm.newTask = {category:'Development',priority:'Medium'};
+  vm.newUser = {role:'Developer',department:'Engineering'};
+
+  vm.apiEndpoints = [
+    {method:'GET',path:'/api/tasks',desc:'Retrieve all tasks with optional filters (?status=Done&priority=High)',response:'[{id, title, status, priority, ...}]',color:'#4ade80'},
+    {method:'GET',path:'/api/tasks/:id',desc:'Get a single task by its unique ID',response:'{id, title, status, ...}',color:'#4ade80'},
+    {method:'POST',path:'/api/tasks',desc:'Create a new task. Body: {title, category, priority, dueDate, assignedTo, description}',response:'{id, title, ...} 201',color:'#7c5cfc'},
+    {method:'PUT',path:'/api/tasks/:id',desc:'Update an existing task by ID. Partial update supported.',response:'{updatedTask}',color:'#fbbf24'},
+    {method:'DELETE',path:'/api/tasks/:id',desc:'Permanently delete a task by ID',response:'{message: "Task deleted"}',color:'#f87171'},
+    {method:'GET',path:'/api/users',desc:'Get all registered users',response:'[{id, name, email, role}]',color:'#4ade80'},
+    {method:'POST',path:'/api/users',desc:'Register a new user. Body: {name, email, role, department}',response:'{id, name, ...} 201',color:'#7c5cfc'},
+    {method:'DELETE',path:'/api/users/:id',desc:'Remove a user from the system',response:'{message: "User removed"}',color:'#f87171'},
+    {method:'GET',path:'/api/tasks/stats',desc:'Get aggregate statistics: total, done, in-progress, overdue counts',response:'{total, done, inProgress, overdue}',color:'#5cf0d0'},
+    {method:'GET',path:'/api/health',desc:'Health check endpoint for monitoring server status',response:'{status: "ok", uptime: ...}',color:'#5cf0d0'},
+  ];
+
+  // CRUD
+  vm.addTask = function() {
+    if (!vm.newTask.title || vm.newTask.title.trim()==='') {
+      vm.formError = 'Task title is required.'; return;
+    }
+    vm.formError = '';
+    var t = angular.copy(vm.newTask);
+    t.id = vm.nextId++;
+    t.status = 'Todo';
+    t.createdAt = new Date();
+    vm.tasks.push(t);
+    vm.newTask = {category:'Development',priority:'Medium'};
+    vm.toast('Task added successfully!','success');
+  };
+
+  vm.deleteTask = function(id) {
+    vm.tasks = vm.tasks.filter(function(t){return t.id!==id;});
+    vm.toast('Task deleted.','success');
+  };
+
+  vm.toggleDone = function(t) {
+    t.status = t.status==='Done' ? 'Todo' : 'Done';
+    vm.toast(t.status==='Done'?'Task marked complete!':'Task reopened.','success');
+  };
+
+  vm.startEdit = function(t) {
+    t.editing = true;
+    t.editTitle = t.title;
+    t.editCategory = t.category;
+    t.editPriority = t.priority;
+    t.editStatus = t.status;
+    t.editAssignedTo = t.assignedTo;
+    t.editDueDate = t.dueDate;
+  };
+
+  vm.saveEdit = function(t) {
+    if (!t.editTitle.trim()) return;
+    t.title = t.editTitle;
+    t.category = t.editCategory;
+    t.priority = t.editPriority;
+    t.status = t.editStatus;
+    t.assignedTo = t.editAssignedTo;
+    t.dueDate = t.editDueDate;
+    t.editing = false;
+    vm.toast('Task updated!','success');
+  };
+
+  vm.addUser = function() {
+    if (!vm.newUser.name||!vm.newUser.email) {
+      vm.toast('Name and email are required.','error'); return;
+    }
+    var u = angular.copy(vm.newUser);
+    u.id = vm.nextUserId++;
+    vm.users.push(u);
+    vm.newUser = {role:'Developer',department:'Engineering'};
+    vm.toast('User added!','success');
+  };
+
+  vm.deleteUser = function(id) {
+    vm.users = vm.users.filter(function(u){return u.id!==id;});
+    vm.toast('User removed.','success');
+  };
+
+  // Filters & stats
+  vm.filteredTasks = function() {
+    return vm.tasks.filter(function(t) {
+      var matchStatus = vm.filterStatus==='all' || t.status===vm.filterStatus;
+      var matchPriority = vm.filterPriority==='all' || t.priority===vm.filterPriority;
+      var matchSearch = !vm.searchQuery || t.title.toLowerCase().indexOf(vm.searchQuery.toLowerCase())>-1 ||
+        (t.description||'').toLowerCase().indexOf(vm.searchQuery.toLowerCase())>-1;
+      return matchStatus && matchPriority && matchSearch;
+    });
+  };
+
+  vm.togglePriorityFilter = function(p) {
+    vm.filterPriority = vm.filterPriority===p ? 'all' : p;
+  };
+
+  vm.countByStatus = function(s) { return vm.tasks.filter(function(t){return t.status===s;}).length; };
+  vm.countByPriority = function(p) { return vm.tasks.filter(function(t){return t.priority===p;}).length; };
+  vm.countByCategory = function(c) { return vm.tasks.filter(function(t){return t.category===c;}).length; };
+  vm.completionPct = function() {
+    if (!vm.tasks.length) return 0;
+    return Math.round((vm.countByStatus('Done')/vm.tasks.length)*100);
+  };
+  vm.countOverdue = function() {
+    var today = new Date(); today.setHours(0,0,0,0);
+    return vm.tasks.filter(function(t){ return t.dueDate && new Date(t.dueDate)<today && t.status!=='Done';}).length;
+  };
+  vm.isOverdue = function(t) {
+    if (!t.dueDate||t.status==='Done') return false;
+    var today = new Date(); today.setHours(0,0,0,0);
+    return new Date(t.dueDate)<today;
+  };
+  vm.isDueSoon = function(t) {
+    if (!t.dueDate||t.status==='Done') return false;
+    var d=new Date(t.dueDate),today=new Date(); today.setHours(0,0,0,0);
+    return d>=today&&d-today<=3*86400000;
+  };
+  vm.statusClass = function(s) {
+    return {Todo:'todo','In Progress':'inprogress',Done:'done'}[s]||'todo';
+  };
+  vm.tasksForUser = function(name) {
+    return vm.tasks.filter(function(t){return t.assignedTo===name;}).length;
+  };
+
+  // Toast
+  vm.toast = function(msg, type) {
+    var t = {message:msg, type:type||'success'};
+    vm.toasts.push(t);
+    $timeout(function(){vm.toasts.splice(vm.toasts.indexOf(t),1);}, 3000);
+  };
+}]);
+</script>
+</body>
+</html>
